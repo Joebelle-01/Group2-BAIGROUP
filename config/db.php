@@ -11,7 +11,7 @@ ini_set('display_errors', 1);
 $host = 'localhost';
 $db   = 'payroll_db';
 $user = 'root';
-$pass = ''; // Default XAMPP password is empty
+$pass = ''; 
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -27,7 +27,7 @@ try {
     require_once __DIR__ . '/../includes/constants.php';
 
 } catch (\PDOException $e) {
-     // For academic projects, simple error message is fine
+     
      die("Connection failed: " . $e->getMessage());
 }
 ?>
