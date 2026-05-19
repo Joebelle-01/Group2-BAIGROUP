@@ -29,10 +29,11 @@ A comprehensive, modern payroll management system built with PHP and MySQL. This
     ```
 
 ### 5. Accessing the System
-1.  Open your browser and go to: `http://localhost/PayrollPIT`
-2.  **Default Login Credentials:**
+1. Run terminal php -S localhost:8000
+2.  Open your browser and go to: `http://localhost/PayrollPIT`
+3.  **Default Login Credentials:**
     *   **Username:** `admin`
-    *   **Password:** `admin123`
+    *   **Password:** `password`
 
 ---
 
