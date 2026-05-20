@@ -5,7 +5,7 @@ checkLogin();
 
 // Stats
 $total_emp = $pdo->query("SELECT COUNT(*) FROM employees WHERE employment_status='Active'")->fetchColumn();
-$total_dept = $pdo->query("SELECT COUNT(*) FROM departments")->fetchColumn();
+$num_payroll_records = $pdo->query("SELECT COUNT(*) FROM payroll_details")->fetchColumn();
 $last_payroll = $pdo->query("SELECT * FROM payroll ORDER BY id DESC LIMIT 1")->fetch();
 $total_payroll_cost = $pdo->query("SELECT COALESCE(SUM(net_pay),0) FROM payroll_details")->fetchColumn();
 
@@ -85,10 +85,10 @@ $health = runHealthCheck($pdo);
           <div class="card kpi-card text-success h-100">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="rounded-circle bg-success bg-opacity-10 p-3"><i class="fas fa-building fa-lg"></i></div>
+                <div class="rounded-circle bg-success bg-opacity-10 p-3"><i class="fas fa-file-invoice-dollar fa-lg"></i></div>
               </div>
-              <div class="text-muted small fw-bold text-uppercase">Departments</div>
-              <div class="fs-2 fw-bold text-dark"><?= $total_dept ?></div>
+              <div class="text-muted small fw-bold text-uppercase">Payroll Records</div>
+              <div class="fs-2 fw-bold text-dark"><?= $num_payroll_records ?></div>
             </div>
           </div>
         </div>
@@ -98,7 +98,7 @@ $health = runHealthCheck($pdo);
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="rounded-circle bg-warning bg-opacity-10 p-3"><i class="fas fa-peso-sign fa-lg"></i></div>
               </div>
-              <div class="text-muted small fw-bold text-uppercase">Total Expenditure</div>
+              <div class="text-muted small fw-bold text-uppercase">Total Amount Paid</div>
               <div class="fs-3 fw-bold text-dark">₱<?= number_format($total_payroll_cost, 2) ?></div>
             </div>
           </div>
@@ -107,10 +107,10 @@ $health = runHealthCheck($pdo);
           <div class="card kpi-card text-info h-100">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="rounded-circle bg-info bg-opacity-10 p-3"><i class="fas fa-file-invoice-dollar fa-lg"></i></div>
+                <div class="rounded-circle bg-info bg-opacity-10 p-3"><i class="fas fa-calendar-alt fa-lg"></i></div>
               </div>
-              <div class="text-muted small fw-bold text-uppercase">Last Payroll ID</div>
-              <div class="fs-4 fw-bold text-dark"><?= $last_payroll ? $last_payroll['ref_no'] : 'N/A' ?></div>
+              <div class="text-muted small fw-bold text-uppercase">Last Payroll Date</div>
+              <div class="fs-4 fw-bold text-dark"><?= $last_payroll ? date('M d, Y', strtotime($last_payroll['date_to'])) : 'N/A' ?></div>
             </div>
           </div>
         </div>

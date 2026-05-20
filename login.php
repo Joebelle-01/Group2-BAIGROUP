@@ -124,14 +124,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div class="mb-3">
                     <label class="form-label small fw-semibold text-secondary">Username</label>
                     <div class="input-group">
-                        <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="far fa-user"></i></span>
+                        <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="fas fa-user"></i></span>
                         <input type="text" name="username" class="form-control border-start-0" required placeholder="admin">
                     </div>
                 </div>
                 <div class="mb-4">
                     <label class="form-label small fw-semibold text-secondary">Password</label>
                     <div class="input-group">
-                        <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="far fa-lock"></i></span>
+                        <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="fas fa-lock"></i></span>
                         <input type="password" name="password" class="form-control border-start-0" required placeholder="••••••••">
                     </div>
                 </div>

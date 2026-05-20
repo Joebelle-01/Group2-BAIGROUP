@@ -3,17 +3,46 @@ require_once '../config/db.php';
 require_once '../includes/auth.php';
 checkLoginForPages();
 
-// Fetch all payroll runs with totals
-$payrolls = $pdo->query("
+// Fetch departments and years for filtering
+$departments = $pdo->query("SELECT * FROM departments ORDER BY name ASC")->fetchAll();
+$years = $pdo->query("SELECT DISTINCT year FROM payroll ORDER BY year DESC")->fetchAll();
+
+$filter_dept = isset($_GET['department_id']) && $_GET['department_id'] !== '' ? (int)$_GET['department_id'] : '';
+$filter_year = isset($_GET['year']) && $_GET['year'] !== '' ? (int)$_GET['year'] : '';
+
+// Fetch all payroll runs with totals, applying dynamic filters
+$where_clauses = [];
+$params = [];
+
+if ($filter_year) {
+    $where_clauses[] = "p.year = ?";
+    $params[] = $filter_year;
+}
+
+if ($filter_dept) {
+    // Show payroll runs that have at least one employee in the filtered department
+    $where_clauses[] = "p.id IN (SELECT DISTINCT pd.payroll_id FROM payroll_details pd JOIN employees e ON pd.employee_id = e.id WHERE e.department_id = ?)";
+    $params[] = $filter_dept;
+}
+
+$where_sql = "";
+if (!empty($where_clauses)) {
+    $where_sql = "WHERE " . implode(" AND ", $where_clauses);
+}
+
+$payroll_stmt = $pdo->prepare("
     SELECT p.*, 
            COUNT(pd.id) AS emp_count,
            COALESCE(SUM(pd.net_pay),0) AS total_net,
            COALESCE(SUM(pd.deductions),0) AS total_deductions
     FROM payroll p
     LEFT JOIN payroll_details pd ON p.id = pd.payroll_id
+    $where_sql
     GROUP BY p.id
     ORDER BY p.id DESC
-")->fetchAll();
+");
+$payroll_stmt->execute($params);
+$payrolls = $payroll_stmt->fetchAll();
 
 // If viewing a specific payroll
 $view_id = isset($_GET['view']) ? (int)$_GET['view'] : null;
@@ -24,7 +53,8 @@ if ($view_id) {
     $view_payroll->execute([$view_id]);
     $view_payroll = $view_payroll->fetch();
 
-    $view_details = $pdo->prepare("
+    // Prepare query for specific payroll slip details with optional department filter
+    $view_details_query = "
         SELECT pd.*, 
                CONCAT(e.first_name,' ',e.last_name) AS full_name,
                e.employee_id AS emp_code,
@@ -34,10 +64,19 @@ if ($view_id) {
         JOIN employees e ON pd.employee_id = e.id
         LEFT JOIN departments d ON e.department_id = d.id
         WHERE pd.payroll_id = ?
-        ORDER BY e.last_name
-    ");
-    $view_details->execute([$view_id]);
-    $view_details = $view_details->fetchAll();
+    ";
+    $params_details = [$view_id];
+    
+    if ($filter_dept) {
+        $view_details_query .= " AND e.department_id = ?";
+        $params_details[] = $filter_dept;
+    }
+    
+    $view_details_query .= " ORDER BY e.last_name";
+    
+    $view_details_stmt = $pdo->prepare($view_details_query);
+    $view_details_stmt->execute($params_details);
+    $view_details = $view_details_stmt->fetchAll();
 }
 ?>
 <?php include '../includes/header.php'; ?>
@@ -48,6 +87,52 @@ if ($view_id) {
     <main class="col-md-10 py-4 px-4">
       <div id="alertPlaceholder"></div>
       <h4 class="fw-bold mb-4"><i class="fas fa-history me-2 text-primary"></i>Payroll History</h4>
+
+      <!-- Filtering Form (Syllabus Requirement) -->
+      <div class="card shadow-sm border-0 mb-4 no-print">
+        <div class="card-body p-3">
+          <form method="GET" class="row g-3 align-items-end">
+            <?php if ($view_payroll): ?>
+              <input type="hidden" name="view" value="<?= $view_id ?>">
+            <?php endif; ?>
+
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold text-secondary">Department</label>
+              <select name="department_id" class="form-select shadow-sm">
+                <option value="">All Departments</option>
+                <?php foreach ($departments as $dept): ?>
+                  <option value="<?= $dept['id'] ?>" <?= $filter_dept === (int)$dept['id'] ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($dept['name']) ?>
+                  </option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+
+            <?php if (!$view_payroll): ?>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold text-secondary">Year</label>
+                <select name="year" class="form-select shadow-sm">
+                  <option value="">All Years</option>
+                  <?php foreach ($years as $y): ?>
+                    <option value="<?= $y['year'] ?>" <?= $filter_year === (int)$y['year'] ? 'selected' : '' ?>>
+                      <?= htmlspecialchars($y['year']) ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+            <?php endif; ?>
+
+            <div class="col-md-3 d-flex gap-2">
+              <button type="submit" class="btn btn-primary px-3 shadow-sm d-flex align-items-center justify-content-center flex-grow-1">
+                <i class="fas fa-filter me-2"></i>Apply Filter
+              </button>
+              <a href="<?= $view_payroll ? '?view=' . $view_payroll['id'] : 'history.php' ?>" class="btn btn-light px-3 shadow-sm border d-flex align-items-center justify-content-center flex-grow-1">
+                <i class="fas fa-undo me-2"></i>Reset
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
 
       <?php if ($view_payroll): ?>
       <!-- Detail View with Print capability -->
