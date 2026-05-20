@@ -40,6 +40,11 @@
           <i class="fas fa-database"></i> Warehouse
         </a>
       </li>
+      <li class="nav-item">
+        <a class="nav-link <?= (strpos($_SERVER['PHP_SELF'], 'analytics.php') !== false) ? 'active' : '' ?>" href="<?= BASE_URL ?>pages/analytics.php">
+          <i class="fas fa-chart-pie"></i> SQL Views & Ranks
+        </a>
+      </li>
     </ul>
 
     <div class="px-3 mt-auto mb-3">

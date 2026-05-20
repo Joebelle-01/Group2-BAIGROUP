@@ -46,6 +46,7 @@ if ($view_id) {
     <?php include '../includes/sidebar.php'; ?>
 
     <main class="col-md-10 py-4 px-4">
+      <div id="alertPlaceholder"></div>
       <h4 class="fw-bold mb-4"><i class="fas fa-history me-2 text-primary"></i>Payroll History</h4>
 
       <?php if ($view_payroll): ?>
@@ -59,7 +60,7 @@ if ($view_id) {
         <div class="card-body p-0">
           <table class="table table-hover mb-0">
             <thead class="table-light">
-              <tr><th>Emp ID</th><th>Name</th><th>Department</th><th>Position</th><th>Basic Pay</th><th>Allowances</th><th>Deductions</th><th class="text-success">Net Pay</th><th>Version</th></tr>
+              <tr><th>Emp ID</th><th>Name</th><th>Department</th><th>Position</th><th>Basic Pay</th><th>Allowances</th><th>Deductions</th><th class="text-success">Net Pay</th><th>Version</th><th class="no-print text-end">Action</th></tr>
             </thead>
             <tbody>
               <?php foreach ($view_details as $d): ?>
@@ -73,6 +74,19 @@ if ($view_id) {
                 <td class="text-danger">-₱<?= number_format($d['deductions'],2) ?></td>
                 <td class="fw-bold text-success">₱<?= number_format($d['net_pay'],2) ?></td>
                 <td><span class="badge bg-secondary">v<?= $d['version'] ?></span></td>
+                <td class="no-print text-end">
+                  <button class="btn btn-outline-primary btn-sm rounded-circle border shadow-sm" type="button" 
+                          onclick='openEditDetailModal(<?= json_encode([
+                              'id' => $d['id'],
+                              'full_name' => $d['full_name'],
+                              'basic_pay' => $d['basic_pay'],
+                              'allowances' => $d['allowances'],
+                              'deductions' => $d['deductions'],
+                              'version' => $d['version']
+                          ]) ?>)' title="Adjust Pay Slip Details">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                </td>
               </tr>
               <?php endforeach; ?>
             </tbody>
@@ -80,6 +94,7 @@ if ($view_id) {
               <tr>
                 <td colspan="7" class="text-end">Total Net Pay:</td>
                 <td class="text-success">₱<?= number_format(array_sum(array_column($view_details,'net_pay')),2) ?></td>
+                <td></td>
                 <td></td>
               </tr>
             </tfoot>
@@ -118,4 +133,82 @@ if ($view_id) {
     </main>
   </div>
 </div>
+<!-- Edit Payroll Detail Modal (Optimistic Concurrency Control Demo) -->
+<div class="modal fade" id="editDetailModal" tabindex="-1" aria-labelledby="editDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="editDetailModalLabel">
+          <i class="fas fa-calculator text-primary me-2"></i>Edit Pay Slip: <span id="lblEmpName" class="text-secondary"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="editDetailForm">
+        <input type="hidden" name="action" value="edit_payroll_detail">
+        <input type="hidden" name="id" id="detail_id">
+        <input type="hidden" name="version" id="detail_version">
+        
+        <div class="modal-body p-4">
+          <!-- OCC Concurrency Control explanation alert in modal -->
+          <div class="alert alert-warning border-start border-4 border-warning rounded shadow-sm py-2 px-3 mb-4 small bg-warning-subtle text-warning-emphasis">
+            <i class="fas fa-shield-alt me-1 text-warning"></i>
+            <strong>Optimistic Concurrency Active!</strong> If another administrator updates this record concurrently, version tracking will prevent conflicts.
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Basic Pay (₱)</label>
+            <input type="number" name="basic_pay" id="detail_basic_pay" class="form-control shadow-sm" step="0.01" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Allowances (₱)</label>
+            <input type="number" name="allowances" id="detail_allowances" class="form-control shadow-sm" step="0.01" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Deductions (₱)</label>
+            <input type="number" name="deductions" id="detail_deductions" class="form-control shadow-sm" step="0.01" required>
+          </div>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-light shadow-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" id="btnSaveDetail" class="btn btn-primary px-4 shadow-sm">Save Adjustments</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+let detailModal;
+document.addEventListener('DOMContentLoaded', function() {
+    const modalEl = document.getElementById('editDetailModal');
+    if (modalEl) {
+        detailModal = new bootstrap.Modal(modalEl);
+        
+        document.getElementById('editDetailForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSaveDetail');
+            
+            const res = await App.ajaxRequest('edit_payroll_detail', new FormData(this), btn);
+            if (res.success) {
+                detailModal.hide();
+                App.showAlert('success', res.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                // If it is a concurrency clash, the alert will pop up with the full detailed message
+                App.showAlert('danger', res.message);
+            }
+        });
+    }
+});
+
+function openEditDetailModal(data) {
+    document.getElementById('lblEmpName').innerText = data.full_name;
+    document.getElementById('detail_id').value = data.id;
+    document.getElementById('detail_version').value = data.version;
+    document.getElementById('detail_basic_pay').value = parseFloat(data.basic_pay).toFixed(2);
+    document.getElementById('detail_allowances').value = parseFloat(data.allowances).toFixed(2);
+    document.getElementById('detail_deductions').value = parseFloat(data.deductions).toFixed(2);
+    detailModal.show();
+}
+</script>
 <?php include '../includes/footer.php'; ?>

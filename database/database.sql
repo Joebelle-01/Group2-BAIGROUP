@@ -134,8 +134,9 @@ SELECT
     e.employee_id,
     CONCAT(e.first_name, ' ', e.last_name) AS full_name,
     d.name AS department,
+    e.position,
     e.salary_rate,
-    RANK() OVER (ORDER BY e.salary_rate DESC) as salary_rank,
+    ROW_NUMBER() OVER (ORDER BY e.salary_rate DESC) as salary_rank,
     ROW_NUMBER() OVER (PARTITION BY d.name ORDER BY e.salary_rate DESC) as dept_rank
 FROM employees e
 JOIN departments d ON e.department_id = d.id;

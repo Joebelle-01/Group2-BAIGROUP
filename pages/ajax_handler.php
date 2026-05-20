@@ -115,7 +115,8 @@ try {
             $payroll_id = $pdo->lastInsertId();
 
             foreach ($checked_ids as $emp_id) {
-                $emp_stmt = $pdo->prepare("SELECT salary_rate FROM employees WHERE id = ?");
+                // Pessimistic Locking: Acquire lock on employee row to prevent concurrent salary rate edits during payroll processing
+                $emp_stmt = $pdo->prepare("SELECT salary_rate FROM employees WHERE id = ? FOR UPDATE");
                 $emp_stmt->execute([$emp_id]);
                 $emp = $emp_stmt->fetch();
                 
@@ -216,6 +217,45 @@ try {
             $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
             $stmt->execute([$id]);
             echo json_encode(['success' => true, 'message' => 'User deleted successfully!']);
+            break;
+
+        case 'edit_payroll_detail':
+            $id = (int)($_POST['id'] ?? 0);
+            $basic_pay = (float)($_POST['basic_pay'] ?? 0);
+            $allowances = (float)($_POST['allowances'] ?? 0);
+            $deductions = (float)($_POST['deductions'] ?? 0);
+            $version = (int)($_POST['version'] ?? 0);
+
+            if (!$id) throw new Exception("Invalid Payroll Detail ID.");
+
+            // Begin transaction for safe execution of OCC and subsequent warehouse sync
+            $pdo->beginTransaction();
+
+            // Calculate net pay
+            $net_pay = $basic_pay + $allowances - $deductions;
+
+            // Optimistic Concurrency Control (OCC) update statement
+            $stmt = $pdo->prepare("
+                UPDATE payroll_details 
+                SET basic_pay = ?, allowances = ?, deductions = ?, net_pay = ?, version = version + 1 
+                WHERE id = ? AND version = ?
+            ");
+            $stmt->execute([$basic_pay, $allowances, $deductions, $net_pay, $id, $version]);
+
+            // Check if record was successfully updated
+            if ($stmt->rowCount() === 0) {
+                // If rowCount is 0, it means either:
+                // 1. The ID doesn't exist.
+                // 2. The version has already been incremented by another user (Concurrency Clash).
+                $pdo->rollBack();
+                throw new Exception("Concurrency Conflict: The record was modified by another session or user. Please reload the page to get the latest data.");
+            }
+
+            // Sync the Data Warehouse immediately since details changed
+            syncDataWarehouse($pdo);
+
+            $pdo->commit();
+            echo json_encode(['success' => true, 'message' => 'Payroll details updated successfully and Data Warehouse synced!']);
             break;
 
         default:
