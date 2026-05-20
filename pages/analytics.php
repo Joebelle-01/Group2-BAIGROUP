@@ -28,9 +28,7 @@ try {
       
       <!-- Premium Page Header -->
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h3 class="fw-bold mb-1"><i class="fas fa-chart-pie me-2 text-primary"></i>Database Views & Window Ranks</h3>
-        </div>
+        <h3 class="fw-bold mb-0"><i class="fas fa-chart-pie me-2 text-primary"></i>Database Views & Window Ranks</h3>
         <a href="<?= BASE_URL ?>index.php" class="btn btn-outline-primary btn-sm">
           <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
         </a>
@@ -45,7 +43,6 @@ try {
           </div>
         </div>
       <?php endif; ?>
-
 
       <div class="row g-4">
         <!-- Leaderboard Card -->
