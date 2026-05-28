@@ -97,7 +97,7 @@ try {
 
         case 'process_payroll':
             $date_from = $_POST['date_from'] ?? '';
-            $date_to = $_POST['date_to'] ?? '';
+            $date_to = $_POST['date_to'] ?? ''; 
             $month = $_POST['month'] ?? '';
             $year = (int)($_POST['year'] ?? 0);
             $checked_ids = $_POST['emp_ids'] ?? [];

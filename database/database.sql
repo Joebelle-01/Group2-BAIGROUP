@@ -1,5 +1,4 @@
--- Payroll Management System Database Script
--- For IT221 Final Project
+
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
